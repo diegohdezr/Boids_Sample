@@ -10,8 +10,11 @@ public class Boid : MonoBehaviour
 {
     public Rigidbody            rigid;
 
+    private Neighborhood neighborhood;
+
     private void Awake()
     {
+        neighborhood = GetComponent<Neighborhood>();
         rigid = GetComponent<Rigidbody>();
 
         //set random initial position based on spawn radius
@@ -60,6 +63,36 @@ public class Boid : MonoBehaviour
         Vector3 Vel = rigid.velocity;
         Spawner localSpawner = Spawner.SpawnerSingleton;
 
+        //collision avoidance -- avoid any neighbours that are too close
+        Vector3 velAvoid = Vector3.zero;
+        Vector3 tooClosePos = neighborhood.avgClosePos;
+
+        //if the response is a Vector3.zero then no need to react or change course
+        if (tooClosePos != Vector3.zero) 
+        {
+            velAvoid = pos - tooClosePos;
+            velAvoid.Normalize();
+            velAvoid *= localSpawner.Velocity;
+        }
+
+        //Velocity matching - try to match velocity with the neighbours
+        Vector3 velAlign = neighborhood.avgVel;
+        //only do more if the velAllign is not Vector3.zero
+        if (velAlign != Vector3.zero) 
+        {
+            velAlign.Normalize();
+            velAlign *= localSpawner.Velocity;
+        }
+
+        //Flock centering - move trowards the center of local neighbours
+        Vector3 velCenter = neighborhood.avgPos;
+        if (velCenter != Vector3.zero) 
+        {
+            velCenter -= transform.position;
+            velCenter.Normalize();
+            velCenter *= localSpawner.Velocity;
+        }
+
         //Attraction behaviour -> go to the attractor
         Vector3 delta = Attractor.POS - pos;
         //check wether we are attracted or avoiding the atractor
@@ -69,13 +102,31 @@ public class Boid : MonoBehaviour
         //apply all the velocities
         float fdt = Time.fixedDeltaTime;
 
-        if (isAttracted)
+        if (velAvoid != Vector3.zero)
         {
-            Vel = Vector3.Lerp(Vel, velAttract, localSpawner.attractPull * fdt);
+            Vel = Vector3.Lerp(Vel, velAttract, localSpawner.collAvoid * fdt);
         }
         else 
         {
-            Vel = Vector3.Lerp(Vel, -velAttract, localSpawner.attractPush * fdt);
+            if (velAlign != Vector3.zero) 
+            {
+                Vel = Vector3.Lerp(Vel, velAlign, localSpawner.velMatching * fdt);
+            }
+            if (velCenter != Vector3.zero) 
+            {
+                Vel = Vector3.Lerp(Vel, velAlign, localSpawner.flockCentering * fdt);
+            }
+            if (velAttract != Vector3.zero) 
+            {
+                if (isAttracted)
+                {
+                    Vel = Vector3.Lerp(Vel, velAttract, localSpawner.attractPull * fdt);
+                }
+                else 
+                {
+                    Vel = Vector3.Lerp(Vel, -velAttract, localSpawner.attractPush * fdt);
+                }
+            }
         }
 
         //set vel to the velocity set in the spawner singleton

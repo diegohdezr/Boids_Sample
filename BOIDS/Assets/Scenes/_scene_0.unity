@@ -553,11 +553,11 @@ MonoBehaviour:
   spawnRadius: 100
   spawnDelay: 0.1
   Velocity: 30
-  neighbourDistance: 30
-  CollissionDist: 4
+  neighbourDistance: 8
+  CollissionDist: 2
   velMatching: 0.25
-  flockCentering: 0.2
-  collAvoid: 2
-  attractPull: 2
-  attractPush: 2
-  attractPushDistance: 5
+  flockCentering: 8
+  collAvoid: 10
+  attractPull: 1
+  attractPush: 20
+  attractPushDistance: 20
